@@ -1,0 +1,4 @@
+/client-app/node_modules
+/client-app/build
+/backend/node_modules
+/backend/uploads
