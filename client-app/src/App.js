@@ -1,25 +1,28 @@
-import logo from './logo.svg';
-import './App.css';
-import { BASE_URL} from './utils/ApiRoute';
-import io from 'socket.io-client';
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { Suspense, useEffect } from "react";
+import { ToastContainer } from "react-toastify";
+const Login = React.lazy(() => import("./screens/auth/Login"));
+const Register = React.lazy(() => import("./screens/auth/Register"));
+const Chat = React.lazy(() => import("./screens/Chat/Index"));
+
 function App() {
+
+  const routes = [
+    { path:"/" , element:<Chat />},
+    { path:"/login" , element:<Login />},
+    { path:"/register" , element:<Register />},
+  ]
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <Router>
+    <Suspense fallback={<div>Loading...</div>}>
+    <ToastContainer />
+    <Routes>
+    {routes.map((route, index) => (
+      <Route key={index} path={route.path} element={route.element} />
+    ))}
+    </Routes>
+  </Suspense>
+  </Router>
   );
 }
 

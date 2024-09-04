@@ -41,11 +41,11 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
     console.log(`Socket ${socket.id} connected`);
 
-    socket.on('sendNotification', async (reqobject) => {
+    socket.on('sendMSG', async (reqobject) => {
         try {
             io.emit(reqobject.id, reqobject);
         } catch (error) {
-            console.error('Error handling sendNotification:', error);
+            console.error('Error handling sendMSG:', error);
         }
     });
 
