@@ -34,7 +34,10 @@ body {
   transform: translateY(-50%);
   color: #888;
 }
-
+.activeUser{
+  background-color: #008000ab;
+  ;
+}
 .input-icon .form-control {
   padding-left: 45px;
   border-radius: 10px;

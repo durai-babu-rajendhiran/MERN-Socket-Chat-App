@@ -1,8 +1,8 @@
 var router = require("express").Router();
-const {AddUserConnect,
-    UserConnectList}=require("../controller/UserConnect");
+const {AddUserConnect,UserConnectList}=require("../controller/UserConnect");
+const {authMiddleware} = require("../Utils/Middleware")
 
-router.post("/userconnect/add", AddUserConnect)
-router.get("/userConnectlist/:id", UserConnectList)
+router.get("/user/connect/:id", authMiddleware,AddUserConnect)
+router.get("/user/connectlist", authMiddleware,UserConnectList)
 
 module.exports = router;
