@@ -10,7 +10,7 @@ const NavBarTop = () => {
     const currentUser = user;
   
     return (
-        <Navbar bg="light" expand="lg" className="border-bottom">
+        <Navbar bg="light" expand="lg" className="border-bottom position-sticky" style={{top:"0%",zIndex:"99"}}>
         <Navbar.Brand href="#">ChatApp</Navbar.Brand>
         <Navbar.Toggle aria-controls="navbar-nav" />
         <Navbar.Collapse id="navbar-nav" className="justify-content-end">

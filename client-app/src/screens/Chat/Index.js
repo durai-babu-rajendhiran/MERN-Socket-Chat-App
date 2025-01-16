@@ -1,31 +1,41 @@
-import { useState, useEffect, useMemo,useCallback } from 'react';
-import {  Button, ListGroup, Modal, Form, InputGroup, Card } from 'react-bootstrap';
-import {  Plus, Send } from 'react-bootstrap-icons';
-import { Listuser, connectUser,connectList } from "../../utils/ApiRoute"
-
-import {  useSelector } from 'react-redux';
+import { useState, useEffect,useRef,useMemo, useCallback } from 'react';
+import { Button, ListGroup, Modal, Form, InputGroup, Card } from 'react-bootstrap';
+import { Plus, Send } from 'react-bootstrap-icons';
+import { Listuser, BASE_URL, connectUser, connectList, addMessage, listMessage } from "../../utils/ApiRoute"
+import { useSelector } from 'react-redux';
 import NavBarTop from './NavBarTop';
-
+import io from 'socket.io-client';
+const socket = io(BASE_URL);
 const Index = () => {
   const [users, setUsers] = useState([]);
-  const [messages, setMessages] = useState([{ id: 1, userId: 1, text: 'Hello, how are you?' }]);
+  const [messages, setMessages] = useState([]);
   const [chatUser, setChatUser] = useState([]);
   const [active, setActive] = useState('');
   const [newMessage, setNewMessage] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const { user } = useSelector((state) => ({ ...state }));
-  const currentUser = user;
-
-  const handleSendMessage = (e) => {
+  const messagesEndRef = useRef(null);
+  const handleSendMessage = async (e) => {
     e.preventDefault();
-    if (newMessage.trim()) {
-      setMessages(prevMessages => [
-        ...prevMessages,
-        { id: prevMessages.length + 1, userId: currentUser?._id, text: newMessage },
-      ]);
+    if (newMessage.trim() !== '') {
+      const DataObject = {
+        _id: Date.parse(new Date()),
+        chatID: Date.parse(new Date()) + "AB" + active?.userData?._id, //user id+ business user id
+        text: newMessage,
+        image: '',
+        video: '',
+        audio: '',
+        type: 0,
+        createdAt: new Date().toString(),
+        date: new Date().toLocaleString().split(',')[0],
+        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        receiverId: active?.userData?._id,
+        nodeId: active?.nodeId
+      }
+      const res = await addMessage(DataObject);
+      socket.emit('sendMessage', active?.nodeId);
       setNewMessage('');
-    }
+    };
   };
 
   const handleAddUser = () => {
@@ -51,19 +61,32 @@ const Index = () => {
   useEffect(() => {
     listUser();
     connectListUser()
-  }, [listUser]);
+  }, [listUser,connectListUser]);
+
+
+  const fetchMessage = async () => {
+    if (active?.nodeId) {
+      const Item = await listMessage(active.nodeId)
+      setMessages(Item.data)
+    }
+  }
+  useEffect(() => {
+    fetchMessage()
+    socket.on(active?.nodeId, fetchMessage);
+  }, [active.nodeId])
 
   const handleUserSelection = async (item) => {
     connectListUser()
-     const connectuser = await connectUser(item._id)
+    const connectuser = await connectUser(item._id)
     console.log(connectuser)
     setUsers(prevUsers => prevUsers.filter(user => user.email !== item.email));
 
   };
 
   const renderMessage = (message) => {
-    const user = users.find((u) => u?._id === message.userId);
-    const isCurrentUser = user?._id === currentUser?._id;
+    const user = message.myData;
+    const senderData = message.userData;
+    const isCurrentUser = user?._id === message?.userId;
     return (
       <div key={message?.id} className={`d-flex align-items-start mb-3 ${isCurrentUser ? 'justify-content-end' : ''}`}>
         {!isCurrentUser && (
@@ -71,9 +94,9 @@ const Index = () => {
         )}
         <div className="d-flex flex-column" style={{ maxWidth: '75%' }}>
           <small className={`text-muted ${isCurrentUser ? 'text-end' : 'text-start'} mb-1`}>
-            {user?.full_name}
+            {isCurrentUser ? user?.full_name : senderData?.full_name}
           </small>
-          <Card className={`p-2 ${isCurrentUser ? 'bg-primary text-white' : 'bg-light'}`}>
+          <Card className={`${isCurrentUser ? 'bg-primary text-white' : 'bg-light'}`}>
             <Card.Body className="p-2">
               <div className="message-content">{message.text}</div>
             </Card.Body>
@@ -90,8 +113,8 @@ const Index = () => {
     return chatUser.map((user) => (
       <ListGroup.Item
         key={user?.nodeId}
-        className={`d-flex align-items-center mb-2 rounded ${user?.nodeId === active ? "activeUser" : ""}`}
-        onClick={() => setActive(user?.nodeId)}
+        className={`d-flex align-items-center mb-2 rounded ${user?.nodeId === active?.nodeId ? "activeUser" : ""}`}
+        onClick={() => setActive(user)}
         role="button"
       >
         <img
@@ -110,10 +133,11 @@ const Index = () => {
 
   return (
     <div className="container-fluid vh-100 d-flex flex-column">
-      <NavBarTop/>
+      <NavBarTop />
       <div className="row flex-grow-1">
-        <div className="col-md-3 p-0 border-end bg-white shadow-sm">
-          <div className="bg-light h-100 p-3">
+        <div className="col-md-3 p-0 border-end bg-white shadow-sm"
+        >
+          <div className="bg-light h-100 p-3 position-fixed w-25">
             <div className="d-flex justify-content-between align-items-center mb-3">
               <h5 className="text-dark">Users</h5>
               <Button variant="outline-primary" size="sm" onClick={handleAddUser}>
@@ -125,25 +149,44 @@ const Index = () => {
             </ListGroup>
           </div>
         </div>
-
         <div className="col-md-9 d-flex flex-column p-0">
-          <div className="flex-grow-1 p-3 bg-white overflow-scroll" style={{ minHeight: "80vh" }}>
-            {messages.map(renderMessage)}
-          </div>
+          {active && (
+            <>
+              <div
+                className="container-fluid rounded-2 d-flex justify-content-between py-2 pl-4 background shadow-sm"
+                style={{ position: "sticky", top: "0%", zIndex: 10, backgroundColor: "#f8f9fa" }}
+              >
+                <div className="d-flex column-gap-2 align-items-center">
+                  <img
+                    src="/img/usr2.png"
+                    style={{ width: 33, height: 33, borderRadius: "50%" }}
+                  />
+                  <div className="d-flex flex-column">
+                    <span className="">user : {active?.userData?.full_name}</span>
+                    <span className="">{active?.nodeId} </span>
+                  </div>
+                </div>
+                <div className="d-flex justify-content-between align-items-center column-gap-3" />
+              </div>
+              <div className="flex-grow-1 p-3 bg-white overflow-scroll" style={{ height: "70vh", scrollbarWidth: "none" }}>
+                {messages.map(renderMessage)}
+              </div>
 
-          <Form onSubmit={handleSendMessage} className="p-3 border-top bg-light">
-            <InputGroup>
-              <Form.Control
-                type="text"
-                placeholder="Type a message..."
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-              />
-              <Button variant="primary" type="submit">
-                <Send />
-              </Button>
-            </InputGroup>
-          </Form>
+              <Form onSubmit={handleSendMessage} className="p-3 border-top bg-light">
+                <InputGroup>
+                  <Form.Control
+                    type="text"
+                    placeholder="Type a message..."
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                  />
+                  <Button variant="primary" type="submit">
+                    <Send />
+                  </Button>
+                </InputGroup>
+              </Form>
+            </>
+          )}
         </div>
       </div>
 

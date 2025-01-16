@@ -1,6 +1,7 @@
 
 // Utility function for making API requests
-const BASE_URL = 'http://localhost:8000/api'; // Replace with your actual API URL
+export const BASE_URL = 'http://localhost:8000'; // Replace with your actual API URL
+const API_BASE_URL = 'http://localhost:8000/api'; // Replace with your actual API URL
 
 const apiRequest = async (url, method = 'GET', data = null,token=true) => {
     const headers = {
@@ -19,7 +20,7 @@ const apiRequest = async (url, method = 'GET', data = null,token=true) => {
         }
     }
     try {
-        const response = await fetch(`${BASE_URL}${url}`, options);
+        const response = await fetch(`${API_BASE_URL}${url}`, options);
         if (!response.ok) {
             throw new Error(`Error: ${response.statusText}`);
         }
@@ -38,5 +39,9 @@ export const getCurrentUser = () => apiRequest('/user/get', 'GET');
 export const Listuser = () => apiRequest('/user/list', 'GET');
 export const connectUser = (id) => apiRequest(`/user/connect/${id}`, 'GET');
 export const connectList = () => apiRequest(`/user/connectlist`, 'GET');
+
+//message Add
+export const addMessage = (data) => apiRequest('/message/add', 'POST', data);
+export const listMessage = (nodeID) => apiRequest('/message/list/'+nodeID, 'GET');
 
 

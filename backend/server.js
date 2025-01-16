@@ -51,11 +51,11 @@ const io = new Server(server, {
 
 // Handle socket connections
 io.on('connection', (socket) => {
-    socket.on('sendMSG', async(reqobject) => {
+    socket.on('sendMessage', async(nodeID) => {
         try {
-            io.emit(reqobject.id, reqobject);
+            io.emit(nodeID, nodeID);
         } catch (error) {
-            console.error('Error handling sendMSG:', error);
+            console.error('Error handling sendMSG:');
         }
     });
     
